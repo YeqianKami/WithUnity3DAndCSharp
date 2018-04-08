@@ -1,0 +1,85 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+/// <summary>
+/// 挂载在主相机上
+/// 滚轮点击拖动，滚动滚落缩放
+/// </summary>
+public class Drag : MonoBehaviour
+{
+	private new Camera camera;
+	private bool isDrag = false;//是否处在拖动状态
+	private Vector3 startMousePosition;//开始拖动的时候鼠标在屏幕上的位置
+	private Vector3 startCameraPosition;//开始拖动的时候相机在世界空间上的位置
+
+	private Text text;//显示屏幕分辨率的，可忽略
+	private void Start()
+	{
+		text = GameObject.FindWithTag("Text").GetComponent<Text>();
+		camera = GetComponent<Camera>();
+		temp = camera.orthographicSize;
+
+		text.text = camera.scaledPixelWidth + "  " + camera.scaledPixelHeight;
+		dragScaleX = 1.0f / camera.scaledPixelHeight;//横向缩放值
+		dragScaleY = 1.0f / camera.scaledPixelHeight;//纵向缩放值
+	}
+
+	void Update()
+	{
+		Drag();//拖动
+		Scale();//滚轮缩放
+	}
+
+	[SerializeField]
+	private float ScrollScale = 0.1f;
+	private float temp;
+	private float tempAxis;
+	private void Scale()//滚轮缩放
+	{
+		tempAxis = Input.GetAxis("Mouse ScrollWheel");//获取滚轮输入，-1/0/1
+		if (tempAxis == 0) return;
+
+		temp -= tempAxis * ScrollScale * temp;
+		if (temp < 0)
+		{
+			temp += tempAxis * ScrollScale * temp;
+			return;
+		}
+		camera.orthographicSize = temp;
+	}
+
+	private void Drag()//拖动
+	{
+		if (Input.GetMouseButtonDown(2))//滚轮按钮
+		{
+			isDrag = true;
+			startMousePosition = Input.mousePosition;//开始拖动前记录鼠标位置
+			startCameraPosition = transform.localPosition;//开始拖动前记录相机位置
+		}
+		if (Input.GetMouseButtonUp(2))
+		{
+			isDrag = false;
+		}
+
+		MoveScene();
+	}
+	[SerializeField]
+	private float dragScaleX = 0.001f;
+	[SerializeField]
+	private float dragScaleY = 0.001f;
+	private Vector3 worldDir;
+	private void MoveScene()
+	{
+		if (!isDrag) return;
+
+		worldDir = (startMousePosition - Input.mousePosition) * 2 * camera.orthographicSize;
+		worldDir.x *= dragScaleX;
+		worldDir.y *= dragScaleY;
+		transform.localPosition = startCameraPosition + worldDir;
+	}
+
+	private void OnGUI()
+	{
+		text.text = camera.pixelWidth + "  " + camera.pixelHeight;
+	}
+}
